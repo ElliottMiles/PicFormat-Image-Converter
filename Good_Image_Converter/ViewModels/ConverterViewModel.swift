@@ -115,7 +115,7 @@ final class ConverterViewModel {
         // SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor, a plain Task created
         // from this MainActor method would still run on the main actor by
         // inheritance, which would silently defeat the point of this.
-        // Kept sequential on purpose: encoding several HEIC/AVIF images
+        // Kept sequential on purpose: encoding several HEIC images
         // concurrently would spike memory further, not help.
         let (results, issues) = await Task.detached(priority: .userInitiated) {
             Self.convertSequentially(images: images, filenames: filenames, format: format, quality: quality)

@@ -13,32 +13,22 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
     case jpeg
     case png
     case heic
-    case heif
     case tiff
     case gif
     case bmp
-    case avif
-    case webp
     case svg
 
     nonisolated var id: String { rawValue }
 
     /// The ImageIO/UTType identifier used to drive `CGImageDestination`.
-    /// `nil` for AVIF/WebP means the identifier failed to resolve on this
-    /// OS — callers must treat that as "unavailable," never fall back to
-    /// a different format's identifier (that would silently write the
-    /// wrong bytes into a file labeled with this format's extension).
-    nonisolated var utType: UTType? {
+    nonisolated var utType: UTType {
         switch self {
         case .jpeg: return .jpeg
         case .png: return .png
         case .heic: return .heic
-        case .heif: return .heif
         case .tiff: return .tiff
         case .gif: return .gif
         case .bmp: return .bmp
-        case .avif: return UTType("public.avif")
-        case .webp: return UTType("org.webmproject.webp")
         case .svg: return .svg
         }
     }
@@ -48,12 +38,9 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .jpeg: return "jpg"
         case .png: return "png"
         case .heic: return "heic"
-        case .heif: return "heif"
         case .tiff: return "tiff"
         case .gif: return "gif"
         case .bmp: return "bmp"
-        case .avif: return "avif"
-        case .webp: return "webp"
         case .svg: return "svg"
         }
     }
@@ -63,12 +50,9 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .jpeg: return "JPEG"
         case .png: return "PNG"
         case .heic: return "HEIC"
-        case .heif: return "HEIF"
         case .tiff: return "TIFF"
         case .gif: return "GIF"
         case .bmp: return "BMP"
-        case .avif: return "AVIF"
-        case .webp: return "WebP"
         case .svg: return "SVG"
         }
     }
@@ -78,12 +62,9 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .jpeg: return "Universal, adjustable compression"
         case .png: return "Lossless, supports transparency"
         case .heic: return "Apple's efficient photo format"
-        case .heif: return "High-efficiency image container"
         case .tiff: return "Lossless, large file size"
         case .gif: return "Lossless, limited to 256 colors"
         case .bmp: return "Uncompressed, very large files"
-        case .avif: return "Next-gen format, small files"
-        case .webp: return "Efficient web-friendly format"
         case .svg: return "Image embedded in a vector wrapper"
         }
     }
@@ -91,7 +72,7 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
     /// Whether this format has a meaningful lossy/quality dial.
     nonisolated var supportsVariableQuality: Bool {
         switch self {
-        case .jpeg, .heic, .heif, .avif, .webp: return true
+        case .jpeg, .heic: return true
         case .png, .tiff, .gif, .bmp, .svg: return false
         }
     }
@@ -99,7 +80,7 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
     /// Whether this format supports an alpha channel.
     nonisolated var supportsTransparency: Bool {
         switch self {
-        case .png, .gif, .bmp, .tiff, .avif, .webp, .heif: return true
+        case .png, .gif, .bmp, .tiff: return true
         case .jpeg, .heic, .svg: return false
         }
     }

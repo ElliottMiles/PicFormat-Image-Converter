@@ -24,22 +24,14 @@ enum ImageConversionService {
         switch format {
         case .svg:
             return try encodeSVG(upright, sourceName: image.baseFilename)
-        case .webp:
-            guard let data = WebPEncoder.encode(upright, quality: effectiveQuality(for: format, quality)) else {
-                throw ConversionError.encodingFailed(name: image.baseFilename, format: format)
-            }
-            return data
         default:
             return try encodeViaImageIO(upright, format: format, quality: quality, sourceName: image.baseFilename)
         }
     }
 
     nonisolated private static func encodeViaImageIO(_ image: CGImage, format: ImageFormat, quality: CompressionQuality, sourceName: String) throws -> Data {
-        guard let utType = format.utType else {
-            throw ConversionError.encodingFailed(name: sourceName, format: format)
-        }
         let output = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(output, utType.identifier as CFString, 1, nil) else {
+        guard let destination = CGImageDestinationCreateWithData(output, format.utType.identifier as CFString, 1, nil) else {
             throw ConversionError.encodingFailed(name: sourceName, format: format)
         }
 

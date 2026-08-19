@@ -4,8 +4,8 @@
 //
 //  Determines, at runtime, which output formats this specific device and
 //  OS build can actually encode. Never hardcode format availability by
-//  device model — HEIC/HEIF/AVIF hardware support varies across chips and
-//  OS versions, so we ask ImageIO what it can currently produce.
+//  device model — HEIC hardware support varies across chips and OS
+//  versions, so we ask ImageIO what it can currently produce.
 //
 
 import ImageIO
@@ -25,11 +25,8 @@ enum FormatCapabilityService {
             // Our SVG output wraps the raster image ourselves; no ImageIO
             // encoder needed, so it's always available.
             return true
-        case .webp:
-            return WebPEncoder.isAvailable
         default:
-            guard let utType = format.utType else { return false }
-            return writableTypeIdentifiers.contains(utType.identifier as CFString)
+            return writableTypeIdentifiers.contains(format.utType.identifier as CFString)
         }
     }
 

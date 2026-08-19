@@ -59,11 +59,15 @@ struct ConfigureView: View {
                 .font(.headline)
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 10)], spacing: 10) {
-                ForEach(viewModel.availableFormats) { format in
-                    FormatCard(format: format, isSelected: viewModel.selectedFormat == format)
-                        .onTapGesture {
-                            viewModel.selectedFormat = format
-                        }
+                ForEach(ImageFormat.allCases) { format in
+                    let isAvailable = FormatCapabilityService.isAvailable(format)
+                    Button {
+                        viewModel.selectedFormat = format
+                    } label: {
+                        FormatCard(format: format, isSelected: viewModel.selectedFormat == format, isAvailable: isAvailable)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!isAvailable)
                 }
             }
         }
@@ -108,6 +112,7 @@ struct ConfigureView: View {
 private struct FormatCard: View {
     let format: ImageFormat
     let isSelected: Bool
+    let isAvailable: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -120,7 +125,7 @@ private struct FormatCard: View {
                         .foregroundStyle(.tint)
                 }
             }
-            Text(format.shortDescription)
+            Text(isAvailable ? format.shortDescription : "Not available on this device")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
@@ -134,6 +139,7 @@ private struct FormatCard: View {
                 .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 14))
+        .opacity(isAvailable ? 1 : 0.4)
     }
 }
 
