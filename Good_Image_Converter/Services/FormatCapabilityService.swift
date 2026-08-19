@@ -28,7 +28,8 @@ enum FormatCapabilityService {
         case .webp:
             return WebPEncoder.isAvailable
         default:
-            return writableTypeIdentifiers.contains(format.utType.identifier as CFString)
+            guard let utType = format.utType else { return false }
+            return writableTypeIdentifiers.contains(utType.identifier as CFString)
         }
     }
 

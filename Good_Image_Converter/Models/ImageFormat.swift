@@ -24,7 +24,11 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
     nonisolated var id: String { rawValue }
 
     /// The ImageIO/UTType identifier used to drive `CGImageDestination`.
-    nonisolated var utType: UTType {
+    /// `nil` for AVIF/WebP means the identifier failed to resolve on this
+    /// OS — callers must treat that as "unavailable," never fall back to
+    /// a different format's identifier (that would silently write the
+    /// wrong bytes into a file labeled with this format's extension).
+    nonisolated var utType: UTType? {
         switch self {
         case .jpeg: return .jpeg
         case .png: return .png
@@ -33,8 +37,8 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .tiff: return .tiff
         case .gif: return .gif
         case .bmp: return .bmp
-        case .avif: return UTType("public.avif") ?? .png
-        case .webp: return UTType("org.webmproject.webp") ?? .png
+        case .avif: return UTType("public.avif")
+        case .webp: return UTType("org.webmproject.webp")
         case .svg: return .svg
         }
     }

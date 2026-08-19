@@ -84,8 +84,12 @@ struct ContentView: View {
             CameraCapture { image in
                 isPresentingCamera = false
                 guard let image else { return }
-                let result = Result { try ImageDecoder.decode(uiImage: image, suggestedName: "Photo \(Date().formatted(date: .numeric, time: .standard))") }
-                viewModel.addImage(result: result)
+                Task.detached(priority: .userInitiated) {
+                    let result = Result {
+                        try ImageDecoder.decode(uiImage: image, suggestedName: "Photo \(Date().formatted(date: .numeric, time: .standard))")
+                    }
+                    await viewModel.addImage(result: result)
+                }
             }
             .ignoresSafeArea()
         }
@@ -108,7 +112,7 @@ struct ContentView: View {
 
     private var importSourceButtons: some View {
         VStack(spacing: 12) {
-            PhotosPicker(selection: $photoSelection, matching: .images) {
+            PhotosPicker(selection: $photoSelection, maxSelectionCount: viewModel.remainingImportCapacity, matching: .images) {
                 SourceButtonLabel(systemImage: "photo.on.rectangle.angled", title: "Photo Library", subtitle: "Choose one or many photos")
             }
 
@@ -152,6 +156,24 @@ struct ContentView: View {
         isLoadingImports = true
         defer { isLoadingImports = false }
 
+        let capacity = viewModel.remainingImportCapacity
+        let admitted = Array(urls.prefix(capacity))
+        if admitted.count < urls.count {
+            viewModel.importIssues.append("Only imported \(admitted.count) of \(urls.count) — 25 image limit per batch")
+        }
+        guard !admitted.isEmpty else { return }
+
+        // Task.detached specifically — see ConverterViewModel.convert()
+        // for why a plain Task{} wouldn't actually leave the main actor
+        // under this project's default actor isolation setting.
+        let results = await Task.detached(priority: .userInitiated) {
+            Self.decodeFileURLs(admitted)
+        }.value
+
+        viewModel.addImages(results)
+    }
+
+    nonisolated private static func decodeFileURLs(_ urls: [URL]) -> [Result<ImportedImage, Error>] {
         var results: [Result<ImportedImage, Error>] = []
         for url in urls {
             do {
@@ -161,7 +183,7 @@ struct ContentView: View {
                 results.append(.failure(ImportError.unreadableFile(name: url.lastPathComponent)))
             }
         }
-        viewModel.addImages(results)
+        return results
     }
 }
 

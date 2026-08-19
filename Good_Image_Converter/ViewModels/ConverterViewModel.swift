@@ -12,6 +12,11 @@ import Observation
 @MainActor
 final class ConverterViewModel {
 
+    /// Cumulative cap across all sources — every ImportedImage keeps its
+    /// full decoded CGImage in memory for the session, independent of
+    /// thumbnail size, so this bounds the more fundamental memory cost.
+    static let maxImportedImages = 25
+
     // Import
     private(set) var importedImages: [ImportedImage] = []
     var importIssues: [String] = []
@@ -41,6 +46,11 @@ final class ConverterViewModel {
     var hasResults: Bool { !conversionResults.isEmpty }
     var isBatch: Bool { importedImages.count > 1 }
 
+    /// How many more images can be admitted before hitting `maxImportedImages`.
+    var remainingImportCapacity: Int {
+        max(0, Self.maxImportedImages - importedImages.count)
+    }
+
     var totalOriginalBytes: Int {
         importedImages.reduce(0) { $0 + $1.originalByteCount }
     }
@@ -52,6 +62,7 @@ final class ConverterViewModel {
     // MARK: - Import
 
     func addImage(_ image: ImportedImage) {
+        guard importedImages.count < Self.maxImportedImages else { return }
         importedImages.append(image)
         syncOutputBaseNameIfNeeded()
     }
@@ -100,6 +111,27 @@ final class ConverterViewModel {
             extension: format.fileExtension
         )
 
+        // Task.detached specifically, not a plain Task{} — with
+        // SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor, a plain Task created
+        // from this MainActor method would still run on the main actor by
+        // inheritance, which would silently defeat the point of this.
+        // Kept sequential on purpose: encoding several HEIC/AVIF images
+        // concurrently would spike memory further, not help.
+        let (results, issues) = await Task.detached(priority: .userInitiated) {
+            Self.convertSequentially(images: images, filenames: filenames, format: format, quality: quality)
+        }.value
+
+        conversionResults = results
+        conversionIssues = issues
+        isConverting = false
+    }
+
+    nonisolated private static func convertSequentially(
+        images: [ImportedImage],
+        filenames: [String],
+        format: ImageFormat,
+        quality: CompressionQuality
+    ) -> (results: [ConversionResult], issues: [String]) {
         var results: [ConversionResult] = []
         var issues: [String] = []
 
@@ -120,9 +152,7 @@ final class ConverterViewModel {
             }
         }
 
-        conversionResults = results
-        conversionIssues = issues
-        isConverting = false
+        return (results, issues)
     }
 
     // MARK: - Export

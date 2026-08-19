@@ -35,8 +35,11 @@ enum ImageConversionService {
     }
 
     nonisolated private static func encodeViaImageIO(_ image: CGImage, format: ImageFormat, quality: CompressionQuality, sourceName: String) throws -> Data {
+        guard let utType = format.utType else {
+            throw ConversionError.encodingFailed(name: sourceName, format: format)
+        }
         let output = NSMutableData()
-        guard let destination = CGImageDestinationCreateWithData(output, format.utType.identifier as CFString, 1, nil) else {
+        guard let destination = CGImageDestinationCreateWithData(output, utType.identifier as CFString, 1, nil) else {
             throw ConversionError.encodingFailed(name: sourceName, format: format)
         }
 
