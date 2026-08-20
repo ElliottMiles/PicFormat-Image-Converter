@@ -398,7 +398,8 @@
 				DEVELOPMENT_TEAM = 5ZH5HJK3UZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Used to take a photo and convert it to a different image format.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Used only to take a photo for you to convert. The photo stays on your device — nothing is uploaded, shared, or collected.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Used only to save your converted images to your library. This app cannot browse your existing photos, and nothing is uploaded, shared, or collected.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -431,7 +432,8 @@
 				DEVELOPMENT_TEAM = 5ZH5HJK3UZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Used to take a photo and convert it to a different image format.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Used only to take a photo for you to convert. The photo stays on your device — nothing is uploaded, shared, or collected.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Used only to save your converted images to your library. This app cannot browse your existing photos, and nothing is uploaded, shared, or collected.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -35,12 +35,20 @@ enum CompressionQuality: String, CaseIterable, Identifiable {
     }
 
     /// Value passed to `kCGImageDestinationLossyCompressionQuality` (0...1).
+    ///
+    /// JPEG/HEIC quality doesn't map to file size linearly or
+    /// predictably (it's content- and encoder-dependent), so these
+    /// aren't tuned to hit exact size-reduction multipliers — they're
+    /// chosen to step down more aggressively at each tier, in roughly
+    /// increasing jumps, matching how the tier names read (each one
+    /// noticeably smaller than the last, Maximum Compression bottoming
+    /// out just above the point where output gets unusably blocky).
     nonisolated var encoderQuality: CGFloat {
         switch self {
         case .lossless: return 1.0
-        case .high: return 0.85
-        case .balanced: return 0.65
-        case .maximumCompression: return 0.35
+        case .high: return 0.6
+        case .balanced: return 0.35
+        case .maximumCompression: return 0.1
         }
     }
 

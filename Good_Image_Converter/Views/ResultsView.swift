@@ -27,14 +27,18 @@ struct ResultsView: View {
                 }
                 HStack(spacing: 12) {
                     Button {
-                        if viewModel.prepareExportFiles() {
-                            viewModel.isPresentingSaveSheet = true
-                        }
+                        viewModel.isPresentingSaveDestinationChooser = true
                     } label: {
-                        Label("Save", systemImage: "square.and.arrow.down")
-                            .frame(maxWidth: .infinity)
+                        if viewModel.isSavingToPhotos {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                        } else {
+                            Label("Save", systemImage: "square.and.arrow.down")
+                                .frame(maxWidth: .infinity)
+                        }
                     }
                     .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.isSavingToPhotos)
 
                     Button {
                         if viewModel.prepareExportFiles() {
@@ -50,6 +54,19 @@ struct ResultsView: View {
             }
             .padding()
             .background(.bar)
+        }
+        .confirmationDialog("Save to…", isPresented: $viewModel.isPresentingSaveDestinationChooser, titleVisibility: .visible) {
+            if viewModel.canSaveToPhotos {
+                Button("Photos") {
+                    Task { await viewModel.saveToPhotoLibrary() }
+                }
+            }
+            Button("Files") {
+                if viewModel.prepareExportFiles() {
+                    viewModel.isPresentingSaveSheet = true
+                }
+            }
+            Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $viewModel.isPresentingSaveSheet) {
             DocumentExporter(urls: viewModel.exportURLs) { success in

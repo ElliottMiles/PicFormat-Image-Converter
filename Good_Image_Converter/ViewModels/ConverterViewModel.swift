@@ -33,10 +33,19 @@ final class ConverterViewModel {
     var isConverting = false
 
     // Export
+    var isPresentingSaveDestinationChooser = false
     var isPresentingSaveSheet = false
     var isPresentingShareSheet = false
+    var isSavingToPhotos = false
     var exportURLs: [URL] = []
     var saveConfirmationMessage: String?
+
+    /// SVG output here is a raster image wrapped in an XML/vector
+    /// container, not a file format the Photos library can import as an
+    /// asset — so that destination isn't offered for it.
+    var canSaveToPhotos: Bool {
+        selectedFormat != .svg
+    }
 
     init() {
         selectedFormat = availableFormats.first(where: { $0 == .jpeg }) ?? availableFormats.first
@@ -173,5 +182,20 @@ final class ConverterViewModel {
                 ? "Saved \(conversionResults[0].filename)."
                 : "Saved \(conversionResults.count) images."
         }
+    }
+
+    func saveToPhotoLibrary() async {
+        guard prepareExportFiles() else { return }
+
+        isSavingToPhotos = true
+        do {
+            try await PhotoLibrarySaveService.save(urls: exportURLs)
+            saveConfirmationMessage = conversionResults.count == 1
+                ? "Saved \(conversionResults[0].filename) to Photos."
+                : "Saved \(conversionResults.count) images to Photos."
+        } catch {
+            conversionIssues.append(error.localizedDescription)
+        }
+        isSavingToPhotos = false
     }
 }
