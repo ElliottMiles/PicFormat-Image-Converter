@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct Good_Image_ConverterApp: App {
+    init() {
+        FileExportService.cleanUpTemporaryDirectoryOnLaunch()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

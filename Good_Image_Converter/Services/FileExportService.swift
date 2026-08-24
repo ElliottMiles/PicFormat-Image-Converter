@@ -7,6 +7,29 @@ import Foundation
 
 enum FileExportService {
 
+    /// Sweeps every kind of leftover temp file this app can create:
+    /// stale Export-* export folders, and "-Inbox" folders left behind by
+    /// UIDocumentPickerViewController's asCopy:true import mode (normally
+    /// cleaned up per-file right after import, but this also catches
+    /// anything from before that cleanup existed, or from a session that
+    /// was killed mid-import). Meant to be called once at app launch,
+    /// when nothing could possibly still be mid-flow yet.
+    nonisolated static func cleanUpTemporaryDirectoryOnLaunch() {
+        removeStaleExportDirectories()
+        removeInboxDirectories()
+    }
+
+    nonisolated private static func removeInboxDirectories() {
+        let fileManager = FileManager.default
+        let tempDir = fileManager.temporaryDirectory
+        guard let contents = try? fileManager.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil) else {
+            return
+        }
+        for url in contents where url.lastPathComponent.hasSuffix("-Inbox") {
+            try? fileManager.removeItem(at: url)
+        }
+    }
+
     /// Writes results out to a scratch directory under the app's own
     /// filenames so they can be handed to UIDocumentPickerViewController
     /// or UIActivityViewController with the right names already baked in.

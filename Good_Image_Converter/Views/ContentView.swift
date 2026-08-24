@@ -182,6 +182,13 @@ struct ContentView: View {
             } catch {
                 results.append(.failure(ImportError.unreadableFile(name: url.lastPathComponent)))
             }
+            // FilesImporter opens with asCopy: true, which copies the
+            // picked file into this app's own Inbox folder under tmp/ —
+            // Apple's documented convention is that the importing app
+            // deletes it once done, regardless of whether reading it
+            // succeeded. Best-effort: if this fails, the OS will still
+            // eventually reclaim tmp/ under storage pressure.
+            try? FileManager.default.removeItem(at: url)
         }
         return results
     }
