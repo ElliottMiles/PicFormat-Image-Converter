@@ -184,6 +184,19 @@ final class ConverterViewModel {
         }
     }
 
+    /// Deletes every export folder immediately — not just this session's
+    /// most recent one (an earlier cancelled Save attempt before a later
+    /// Share, for instance, would otherwise wait for the next export's
+    /// stale-folder sweep or the next app launch). Safe to call
+    /// unconditionally: by the time the results screen has actually
+    /// disappeared (not just covered by a sheet), every Save/Share/Photos
+    /// flow from this screen's lifetime has necessarily already finished
+    /// with its files.
+    func cleanUpExportFiles() {
+        FileExportService.removeAllExportDirectories()
+        exportURLs.removeAll()
+    }
+
     func saveToPhotoLibrary() async {
         guard prepareExportFiles() else { return }
 

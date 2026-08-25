@@ -18,6 +18,9 @@ struct ResultsView: View {
         }
         .navigationTitle("Converted")
         .navigationBarTitleDisplayMode(.inline)
+        .onDisappear {
+            viewModel.cleanUpExportFiles()
+        }
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 10) {
                 if let message = viewModel.saveConfirmationMessage {
