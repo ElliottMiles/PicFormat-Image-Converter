@@ -17,6 +17,7 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
     case gif
     case bmp
     case svg
+    case pdf
 
     nonisolated var id: String { rawValue }
 
@@ -30,6 +31,7 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .gif: return .gif
         case .bmp: return .bmp
         case .svg: return .svg
+        case .pdf: return .pdf
         }
     }
 
@@ -42,6 +44,7 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .gif: return "gif"
         case .bmp: return "bmp"
         case .svg: return "svg"
+        case .pdf: return "pdf"
         }
     }
 
@@ -54,6 +57,7 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .gif: return "GIF"
         case .bmp: return "BMP"
         case .svg: return "SVG"
+        case .pdf: return "PDF"
         }
     }
 
@@ -66,13 +70,16 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
         case .gif: return "Lossless, limited to 256 colors"
         case .bmp: return "Uncompressed, very large files"
         case .svg: return "Image embedded in a vector wrapper"
+        case .pdf: return "Document format, page size matches image"
         }
     }
 
-    /// Whether this format has a meaningful lossy/quality dial.
+    /// Whether this format has a meaningful lossy/quality dial. PDF pages
+    /// here are always JPEG-backed internally (see
+    /// ImageConversionService), so the quality tier applies to it too.
     nonisolated var supportsVariableQuality: Bool {
         switch self {
-        case .jpeg, .heic: return true
+        case .jpeg, .heic, .pdf: return true
         case .png, .tiff, .gif, .bmp, .svg: return false
         }
     }
@@ -81,7 +88,7 @@ enum ImageFormat: String, CaseIterable, Identifiable, Hashable {
     nonisolated var supportsTransparency: Bool {
         switch self {
         case .png, .gif, .bmp, .tiff: return true
-        case .jpeg, .heic, .svg: return false
+        case .jpeg, .heic, .svg, .pdf: return false
         }
     }
 }

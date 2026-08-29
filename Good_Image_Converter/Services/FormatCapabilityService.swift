@@ -21,9 +21,10 @@ enum FormatCapabilityService {
 
     nonisolated static func isAvailable(_ format: ImageFormat) -> Bool {
         switch format {
-        case .svg:
-            // Our SVG output wraps the raster image ourselves; no ImageIO
-            // encoder needed, so it's always available.
+        case .svg, .pdf:
+            // Both of these are built by our own code (SVG wraps the
+            // raster image ourselves; PDF is hand-written around a JPEG
+            // stream) — no ImageIO encoder needed, so always available.
             return true
         default:
             return writableTypeIdentifiers.contains(format.utType.identifier as CFString)

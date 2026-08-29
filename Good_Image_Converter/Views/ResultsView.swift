@@ -83,10 +83,21 @@ struct ResultsView: View {
         }
     }
 
+    /// A combined PDF collapses every source image into one result, so
+    /// the source count (not the result count) is what's worth telling
+    /// the user about.
+    private var isCombinedPDFResult: Bool {
+        viewModel.selectedFormat == .pdf && viewModel.conversionResults.count == 1 && viewModel.importedImages.count > 1
+    }
+
     private var summaryCard: some View {
         let saved = viewModel.totalOriginalBytes - viewModel.totalConvertedBytes
+        let sourceCount = viewModel.importedImages.count
+        let title = isCombinedPDFResult
+            ? "\(sourceCount) images combined into 1 PDF"
+            : "\(viewModel.conversionResults.count) image\(viewModel.conversionResults.count == 1 ? "" : "s") converted to \(viewModel.selectedFormat?.displayName ?? "")"
         return VStack(alignment: .leading, spacing: 6) {
-            Text("\(viewModel.conversionResults.count) image\(viewModel.conversionResults.count == 1 ? "" : "s") converted to \(viewModel.selectedFormat?.displayName ?? "")")
+            Text(title)
                 .font(.headline)
             Text(ByteCountFormatter.string(fromByteCount: Int64(viewModel.totalConvertedBytes), countStyle: .file) + " total"
                  + (saved > 0 ? " · \(ByteCountFormatter.string(fromByteCount: Int64(saved), countStyle: .file)) smaller than originals" : ""))

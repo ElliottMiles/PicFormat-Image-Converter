@@ -26,6 +26,9 @@ final class ConverterViewModel {
     var selectedFormat: ImageFormat?
     var selectedQuality: CompressionQuality = .high
     var outputBaseName: String = "Converted"
+    /// PDF-only, defaults off: combine every image into one multi-page
+    /// PDF instead of one single-page PDF per image.
+    var combinePDFPages = false
 
     // Conversion
     private(set) var conversionResults: [ConversionResult] = []
@@ -40,11 +43,12 @@ final class ConverterViewModel {
     var exportURLs: [URL] = []
     var saveConfirmationMessage: String?
 
+    /// Neither of these is an image asset the Photos library can import:
     /// SVG output here is a raster image wrapped in an XML/vector
-    /// container, not a file format the Photos library can import as an
-    /// asset — so that destination isn't offered for it.
+    /// container, and PDF is a document format, not a photo — so that
+    /// destination isn't offered for either.
     var canSaveToPhotos: Bool {
-        selectedFormat != .svg
+        selectedFormat != .svg && selectedFormat != .pdf
     }
 
     init() {
@@ -54,6 +58,13 @@ final class ConverterViewModel {
     var hasImages: Bool { !importedImages.isEmpty }
     var hasResults: Bool { !conversionResults.isEmpty }
     var isBatch: Bool { importedImages.count > 1 }
+
+    /// Whether the current configuration will produce exactly one output
+    /// file regardless of how many images were imported — true for a
+    /// single imported image, or for a batch being combined into one PDF.
+    var willProduceSingleFile: Bool {
+        !isBatch || (selectedFormat == .pdf && combinePDFPages)
+    }
 
     /// How many more images can be admitted before hitting `maxImportedImages`.
     var remainingImportCapacity: Int {
@@ -114,9 +125,10 @@ final class ConverterViewModel {
 
         let images = importedImages
         let quality = selectedQuality
+        let combine = format == .pdf && combinePDFPages
         let filenames = FileExportService.filenames(
             baseName: outputBaseName,
-            count: images.count,
+            count: combine ? 1 : images.count,
             extension: format.fileExtension
         )
 
@@ -127,7 +139,7 @@ final class ConverterViewModel {
         // Kept sequential on purpose: encoding several HEIC images
         // concurrently would spike memory further, not help.
         let (results, issues) = await Task.detached(priority: .userInitiated) {
-            Self.convertSequentially(images: images, filenames: filenames, format: format, quality: quality)
+            Self.convertSequentially(images: images, filenames: filenames, format: format, quality: quality, combine: combine)
         }.value
 
         conversionResults = results
@@ -139,8 +151,25 @@ final class ConverterViewModel {
         images: [ImportedImage],
         filenames: [String],
         format: ImageFormat,
-        quality: CompressionQuality
+        quality: CompressionQuality,
+        combine: Bool
     ) -> (results: [ConversionResult], issues: [String]) {
+        if combine, let firstImage = images.first, let combinedFilename = filenames.first {
+            do {
+                let data = try ImageConversionService.convertCombinedPDF(images: images, quality: quality)
+                let result = ConversionResult(
+                    sourceID: firstImage.id,
+                    filename: combinedFilename,
+                    data: data,
+                    format: format,
+                    thumbnail: firstImage.thumbnail
+                )
+                return ([result], [])
+            } catch {
+                return ([], [error.localizedDescription])
+            }
+        }
+
         var results: [ConversionResult] = []
         var issues: [String] = []
 

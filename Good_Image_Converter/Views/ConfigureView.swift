@@ -13,6 +13,9 @@ struct ConfigureView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
                 formatSection
+                if viewModel.selectedFormat == .pdf && viewModel.isBatch {
+                    pdfCombineSection
+                }
                 if viewModel.selectedFormat?.supportsVariableQuality == true {
                     qualitySection
                 }
@@ -73,6 +76,22 @@ struct ConfigureView: View {
         }
     }
 
+    private var pdfCombineSection: some View {
+        Toggle(isOn: $viewModel.combinePDFPages) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Combine into One PDF")
+                    .font(.subheadline.weight(.semibold))
+                Text(viewModel.combinePDFPages
+                     ? "All images become pages in a single PDF"
+                     : "Each image becomes its own PDF")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+    }
+
     private var qualitySection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Quality")
@@ -91,17 +110,17 @@ struct ConfigureView: View {
 
     private var filenameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(viewModel.isBatch ? "Filename Prefix" : "Filename")
+            Text(viewModel.willProduceSingleFile ? "Filename" : "Filename Prefix")
                 .font(.headline)
 
-            TextField(viewModel.isBatch ? "e.g. Vacation" : "e.g. MyImage", text: $viewModel.outputBaseName)
+            TextField(viewModel.willProduceSingleFile ? "e.g. MyImage" : "e.g. Vacation", text: $viewModel.outputBaseName)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
 
             if let format = viewModel.selectedFormat {
-                Text(viewModel.isBatch
-                     ? "Saved as \(FileExportService.sanitize(viewModel.outputBaseName))-1.\(format.fileExtension), -2.\(format.fileExtension), …"
-                     : "Saved as \(FileExportService.sanitize(viewModel.outputBaseName)).\(format.fileExtension)")
+                Text(viewModel.willProduceSingleFile
+                     ? "Saved as \(FileExportService.sanitize(viewModel.outputBaseName)).\(format.fileExtension)"
+                     : "Saved as \(FileExportService.sanitize(viewModel.outputBaseName))-1.\(format.fileExtension), -2.\(format.fileExtension), …")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
