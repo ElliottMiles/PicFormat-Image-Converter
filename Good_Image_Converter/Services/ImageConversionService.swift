@@ -33,14 +33,27 @@ enum ImageConversionService {
     }
 
     /// Builds a single multi-page PDF from every image in the batch, one
-    /// page per image, each page sized exactly to that image's own
-    /// dimensions. Used only when the user turns on "combine into one
-    /// PDF" — the default per-image `convert(_:to:quality:)` path above
-    /// already produces one single-page PDF per image otherwise.
+    /// page per image. Unlike the single-image path, every page shares
+    /// the same width — flipping through pages of wildly different sizes
+    /// reads as broken, even though each page was individually correct —
+    /// so each image is scaled (never cropped, never distorted) to a
+    /// common width, with its height following proportionally. That
+    /// shared width is the widest image in the batch, not an arbitrary
+    /// constant or the first image: scaling every other page down to fit
+    /// never has to upscale a lower-resolution image past its native
+    /// detail, which scaling up to match a narrower image would risk.
+    /// Used only when the user turns on "combine into one PDF" — the
+    /// default per-image `convert(_:to:quality:)` path above already
+    /// produces one single-page, page-size-equals-image-size PDF per
+    /// image otherwise, where this kind of consistency isn't a concern.
     nonisolated static func convertCombinedPDF(images: [ImportedImage], quality: CompressionQuality) throws -> Data {
-        let pages = try images.map { image -> PDFPageImage in
-            let upright = ImageOrientationNormalizer.normalize(image.cgImage, orientation: image.orientation)
-            return try makePDFPage(from: upright, quality: quality, sourceName: image.baseFilename)
+        let uprightImages = images.map { image in
+            ImageOrientationNormalizer.normalize(image.cgImage, orientation: image.orientation)
+        }
+        let sharedWidth = uprightImages.map(\.width).max()
+
+        let pages = try zip(images, uprightImages).map { image, upright in
+            try makePDFPage(from: upright, quality: quality, sourceName: image.baseFilename, pageWidth: sharedWidth)
         }
         return buildPDF(pages: pages)
     }
@@ -96,13 +109,22 @@ enum ImageConversionService {
 
     // MARK: - PDF
 
-    /// One PDF page's worth of image data: page/image dimensions in
-    /// pixels (used directly as PDF points — 1 image pixel = 1 pt — so
-    /// the page is always exactly the image's size, no separate paper
-    /// size or margins) plus the already-JPEG-compressed bytes to embed.
+    /// One PDF page's worth of image data. `imageWidth`/`imageHeight` are
+    /// the embedded JPEG's own native pixel dimensions (must match the
+    /// actual encoded stream, or PDF readers misinterpret it).
+    /// `pageWidth`/`pageHeight` are what's actually used for the page's
+    /// own MediaBox and the content stream's paint-to-this-size matrix —
+    /// in points, at the same 1 pixel = 1 pt scale used everywhere in
+    /// this app — and are only different from the image's native size
+    /// when a shared page width was requested (combined PDFs); the JPEG
+    /// stream itself is never re-encoded to scale it, only the
+    /// instruction for how large to paint it changes, exactly like
+    /// resizing an <img> tag without touching the source file.
     private struct PDFPageImage {
-        let width: Int
-        let height: Int
+        let imageWidth: Int
+        let imageHeight: Int
+        let pageWidth: Int
+        let pageHeight: Int
         let jpegData: Data
     }
 
@@ -117,9 +139,29 @@ enum ImageConversionService {
     /// literally bit-exact," and not verifiable here without a working
     /// build. JPEG via the already-proven encodeViaImageIO path is the
     /// safer choice.
-    nonisolated private static func makePDFPage(from image: CGImage, quality: CompressionQuality, sourceName: String) throws -> PDFPageImage {
+    nonisolated private static func makePDFPage(from image: CGImage, quality: CompressionQuality, sourceName: String, pageWidth: Int? = nil) throws -> PDFPageImage {
         let jpegData = try encodeViaImageIO(image, format: .jpeg, quality: quality, sourceName: sourceName)
-        return PDFPageImage(width: image.width, height: image.height, jpegData: jpegData)
+        let nativeWidth = image.width
+        let nativeHeight = image.height
+
+        let outputWidth: Int
+        let outputHeight: Int
+        if let pageWidth, nativeWidth > 0 {
+            outputWidth = pageWidth
+            let scaledHeight = Double(nativeHeight) * Double(pageWidth) / Double(nativeWidth)
+            outputHeight = max(1, Int(scaledHeight.rounded()))
+        } else {
+            outputWidth = nativeWidth
+            outputHeight = nativeHeight
+        }
+
+        return PDFPageImage(
+            imageWidth: nativeWidth,
+            imageHeight: nativeHeight,
+            pageWidth: outputWidth,
+            pageHeight: outputHeight,
+            jpegData: jpegData
+        )
     }
 
     /// Hand-writes a minimal but spec-valid PDF (header, catalog, page
@@ -175,13 +217,13 @@ enum ImageConversionService {
 
             writeObject(pageNumber) { data in
                 data.append(("<< /Type /Page /Parent \(pagesNumber) 0 R "
-                    + "/MediaBox [0 0 \(page.width) \(page.height)] "
+                    + "/MediaBox [0 0 \(page.pageWidth) \(page.pageHeight)] "
                     + "/Resources << /XObject << /Im0 \(imageNumber) 0 R >> >> "
                     + "/Contents \(contentNumber) 0 R >>").data(using: .ascii)!)
             }
 
             writeObject(imageNumber) { data in
-                data.append(("<< /Type /XObject /Subtype /Image /Width \(page.width) /Height \(page.height) "
+                data.append(("<< /Type /XObject /Subtype /Image /Width \(page.imageWidth) /Height \(page.imageHeight) "
                     + "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode "
                     + "/Length \(page.jpegData.count) >>\nstream\n").data(using: .ascii)!)
                 data.append(page.jpegData)
@@ -192,8 +234,11 @@ enum ImageConversionService {
                 // Image XObjects paint into the unit square by
                 // convention; this scales that square up to exactly the
                 // page's own width/height, so the image fills the page
-                // edge to edge with no margin.
-                let content = "q\n\(page.width) 0 0 \(page.height) 0 0 cm\n/Im0 Do\nQ"
+                // edge to edge with no margin. Using pageWidth/pageHeight
+                // here (rather than the JPEG's own native pixel size) is
+                // what actually applies the shared-width scaling for
+                // combined PDFs — the embedded JPEG bytes are untouched.
+                let content = "q\n\(page.pageWidth) 0 0 \(page.pageHeight) 0 0 cm\n/Im0 Do\nQ"
                 data.append("<< /Length \(content.utf8.count) >>\nstream\n\(content)\nendstream".data(using: .ascii)!)
             }
         }
