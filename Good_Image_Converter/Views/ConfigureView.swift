@@ -9,6 +9,8 @@ struct ConfigureView: View {
     @Bindable var viewModel: ConverterViewModel
     var onConverted: () -> Void
 
+    @FocusState private var isFilenameFieldFocused: Bool
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 28) {
@@ -29,10 +31,21 @@ struct ConfigureView: View {
             }
             .padding()
         }
+        // Tapping any background/non-interactive area dismisses the
+        // keyboard; buttons and other controls still get first crack at
+        // their own taps, so this doesn't interfere with them.
+        .onTapGesture {
+            isFilenameFieldFocused = false
+        }
+        // Covers the "scroll down the page" case specifically — the
+        // keyboard drops as soon as a scroll drag begins, before the tap
+        // gesture above would ever get a chance to fire.
+        .scrollDismissesKeyboard(.immediately)
         .navigationTitle("Choose Format")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) {
             Button {
+                isFilenameFieldFocused = false
                 Task {
                     await viewModel.convert()
                     if viewModel.hasResults {
@@ -65,6 +78,7 @@ struct ConfigureView: View {
                 ForEach(ImageFormat.allCases) { format in
                     let isAvailable = FormatCapabilityService.isAvailable(format)
                     Button {
+                        isFilenameFieldFocused = false
                         viewModel.selectedFormat = format
                     } label: {
                         FormatCard(format: format, isSelected: viewModel.selectedFormat == format, isAvailable: isAvailable)
@@ -77,7 +91,14 @@ struct ConfigureView: View {
     }
 
     private var pdfCombineSection: some View {
-        Toggle(isOn: $viewModel.combinePDFPages) {
+        let combineBinding = Binding(
+            get: { viewModel.combinePDFPages },
+            set: { newValue in
+                isFilenameFieldFocused = false
+                viewModel.combinePDFPages = newValue
+            }
+        )
+        return Toggle(isOn: combineBinding) {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Combine into One PDF")
                     .font(.subheadline.weight(.semibold))
@@ -101,6 +122,7 @@ struct ConfigureView: View {
                 ForEach(CompressionQuality.allCases) { quality in
                     QualityRow(quality: quality, isSelected: viewModel.selectedQuality == quality)
                         .onTapGesture {
+                            isFilenameFieldFocused = false
                             viewModel.selectedQuality = quality
                         }
                 }
@@ -116,6 +138,7 @@ struct ConfigureView: View {
             TextField(viewModel.willProduceSingleFile ? "e.g. MyImage" : "e.g. Vacation", text: $viewModel.outputBaseName)
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
+                .focused($isFilenameFieldFocused)
 
             if let format = viewModel.selectedFormat {
                 Text(viewModel.willProduceSingleFile
