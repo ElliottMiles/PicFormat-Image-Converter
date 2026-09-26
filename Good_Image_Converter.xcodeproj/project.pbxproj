@@ -394,10 +394,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5ZH5HJK3UZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Image Converter";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Used only to take a photo for you to convert. The photo stays on your device — nothing is uploaded, shared, or collected.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Used only to save your converted images to your library. This app cannot browse your existing photos, and nothing is uploaded, shared, or collected.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -428,10 +430,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 5ZH5HJK3UZ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Image Converter";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Used only to take a photo for you to convert. The photo stays on your device — nothing is uploaded, shared, or collected.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Used only to save your converted images to your library. This app cannot browse your existing photos, and nothing is uploaded, shared, or collected.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
